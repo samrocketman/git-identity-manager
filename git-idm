@@ -3,6 +3,12 @@
 #License: MIT
 #Project URL: https://github.com/samrocketman/git-identity-manager
 
+version='0.1'
+
+function echo_version() {
+    echo "git idm v${version}" >&2
+}
+
 function usage() {
     cat >&2 <<EOF
 Git identity manager (git idm).  It allows you to switch between git identities
@@ -46,6 +52,7 @@ Command options:
              removed.
     uninstall has no options
 EOF
+    echo_version
     exit 1
 }
 
@@ -197,6 +204,9 @@ case "${comm}" in
             check_ssh_agent "${SSH_KEY}"
         fi
         ;;
+    help)
+        usage
+        ;;
     list)
         git config --global --list | print_identities
         ;;
@@ -246,8 +256,9 @@ case "${comm}" in
         fi
         run_command git config --global user.activeidm "${id}"
         ;;
-    help)
-        usage
+    version)
+        echo_version
+        exit 1
         ;;
     *)
         echo "ERROR: Command ${comm} not found.  See 'git idm help'." >&2
