@@ -5,8 +5,9 @@
 
 function usage() {
     cat >&2 <<EOF
-Git identity manager.  It allows you to switch between git identities for user,
-name, and SSH private key used for authoring and publishing git commits.
+Git identity manager (git idm).  It allows you to switch between git identities
+for user, name, and SSH private key used for authoring and publishing git
+commits.
 
 Synopsis: git ${0##*/git-} COMMAND [ID] [OPTIONS]
 
@@ -22,11 +23,11 @@ Commands:
        active - Display the identity currently used by git idm.
           add - Add or update an identity.  --name, --email, and --key are
                 required when adding an identity for the first time only.
+         list - List identites.
+       remove - Remove a single identity or all identities.
     uninstall - Removes all git idm data from global gitconfig.  All git idm
                 identities will be removed.  This will not affect settings not
                 related to git idm.
-         list - List identites.
-       remove - Remove a single identity or all identities.
           use - Actively use an identity for git authorship and publishing.
 
 Command options:
