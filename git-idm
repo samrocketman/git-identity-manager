@@ -211,6 +211,10 @@ case "${comm}" in
         git config --global --list | print_identities
         ;;
     remove|rm)
+        if [ -z "${id}" ]; then
+            echo 'ERROR: No identity selected for removal.'
+            exit 1
+        fi
         if [ "${id}" = all ]; then
             git config --global --list |
             awk '
