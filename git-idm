@@ -258,7 +258,6 @@ case "${comm}" in
         ;;
     version)
         echo_version
-        exit 1
         ;;
     *)
         echo "ERROR: Command ${comm} not found.  See 'git idm help'." >&2
