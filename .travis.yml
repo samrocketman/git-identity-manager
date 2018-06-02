@@ -1,4 +1,7 @@
 language: bash
+branches:
+  only:
+    - master
 sudo: false
 addons:
   apt:
