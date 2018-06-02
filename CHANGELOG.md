@@ -1,3 +1,9 @@
+# git-idm v0.3
+
+Bugfixes:
+
+- shellcheck recommendations
+
 # git-idm v0.2
 
 New features:
