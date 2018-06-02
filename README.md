@@ -7,6 +7,10 @@ attempts to make it less painful.
 
 [Image credit PBS.org][pbs]
 
+# Requirements
+
+- [`git 2.10` or later because of `core.sshCommand`][git-2.10].
+
 # Installation
 
 Add `git-idm` script to your `$PATH` and make it executable.  Then, you can
@@ -41,4 +45,5 @@ For more commands see `git idm help`.
 [MIT License](LICENSE.txt)
 
 [backpain]: https://user-images.githubusercontent.com/875669/40868569-f1512a4e-65c2-11e8-9dfe-91ece96d62db.jpg
+[git-2.10]: https://github.com/git/git/blob/v2.10.0/Documentation/RelNotes/2.10.0.txt#L83-L84
 [pbs]: https://www.pbs.org/newshour/health/back-pain-industry-taking-patients-unhealthy-ride
