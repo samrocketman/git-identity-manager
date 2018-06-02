@@ -1,5 +1,7 @@
 #!/bin/bash
 #Created by Sam Gleske
+#License: MIT
+#Project URL: https://github.com/samrocketman/git-identity-manager
 
 function usage() {
     cat >&2 <<EOF
@@ -17,29 +19,31 @@ Example usage:
 
 Commands:
 
-    active - Display the identity currently used by git idm.
-       add - Add or update an identity.  --name, --email, and --key are
-             required when adding an identity for the first time only.
-     clean - Removes all git idm data from global gitconfig.  All git idm
-             identities will be removed.  This will not affect settings not
-             related to git idm.
-      list - List identites.
-    remove - Remove a single identity or all identities.
-       use - Actively use an identity for git authorship and publishing.
+       active - Display the identity currently used by git idm.
+          add - Add or update an identity.  --name, --email, and --key are
+                required when adding an identity for the first time only.
+    uninstall - Removes all git idm data from global gitconfig.  All git idm
+                identities will be removed.  This will not affect settings not
+                related to git idm.
+         list - List identites.
+       remove - Remove a single identity or all identities.
+          use - Actively use an identity for git authorship and publishing.
 
 Command options:
 
-    list has no options.
+    active has no options
     add:
                    ID - The first argument is the identity ID.
           --name NAME - Name of the associated identity.
         --email EMAIL - Email of the associated identity.
             --key SSH_COMMAND - SSH private key of the associated identity.
+    list has no options.
     use:
         ID - Identity to activate.
     remove:
         ID - Remove the identity.  If ID is "all" then all identities will be
              removed.
+    uninstall has no options
 EOF
     exit 1
 }
@@ -192,11 +196,6 @@ case "${comm}" in
             check_ssh_agent "${SSH_KEY}"
         fi
         ;;
-    clean)
-        "$0" remove all
-        #throw away the exit code because we don't care
-        run_command git config --global --unset user.activeidm || true
-        ;;
     list)
         git config --global --list | print_identities
         ;;
@@ -219,6 +218,13 @@ case "${comm}" in
             git config --global --remove-section gitidm."${id}"
             echo "Removed identity ${id}."
         fi
+        ;;
+    uninstall)
+        "$0" remove all
+        #throw away the exit code because we don't care
+        run_command git config --global --unset user.activeidm || true
+        echo 'To complete uninstallation run the following command:' >&2
+        echo "rm \"$0\"" >&2
         ;;
     use)
         if ! identity_exists; then
