@@ -1,5 +1,9 @@
 # git-idm v0.3
 
+New features:
+
+- Add `-v` and `--version` options in addition to `git idm version`.
+
 Bugfixes:
 
 - shellcheck recommendations
