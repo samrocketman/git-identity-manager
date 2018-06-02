@@ -1,0 +1,249 @@
+#!/bin/bash
+#Created by Sam Gleske
+
+function usage() {
+    cat >&2 <<EOF
+Git identity manager.  It allows you to switch between git identities for user,
+name, and SSH private key used for authoring and publishing git commits.
+
+Synopsis: git ${0##*/git-} COMMAND [ID] [OPTIONS]
+
+Example usage:
+
+    git ${0##*/git-} add jcool --name "Joe Cool" --email "joe@example.com" --key ~/.ssh/id_rsa
+    git ${0##*/git-} list
+    git ${0##*/git-} use jcool
+    git ${0##*/git-} remove jcool
+
+Commands:
+
+    active - Display the identity currently used by git idm.
+       add - Add or update an identity.  --name, --email, and --key are
+             required when adding an identity for the first time only.
+     clean - Removes all git idm data from global gitconfig.  All git idm
+             identities will be removed.  This will not affect settings not
+             related to git idm.
+      list - List identites.
+    remove - Remove a single identity or all identities.
+       use - Actively use an identity for git authorship and publishing.
+
+Command options:
+
+    list has no options.
+    add:
+                   ID - The first argument is the identity ID.
+          --name NAME - Name of the associated identity.
+        --email EMAIL - Email of the associated identity.
+            --key SSH_COMMAND - SSH private key of the associated identity.
+    use:
+        ID - Identity to activate.
+    remove:
+        ID - Remove the identity.  If ID is "all" then all identities will be
+             removed.
+EOF
+    exit 1
+}
+
+function print_identities() {
+    awk '
+    BEGIN {
+        FS="."
+    }
+    $1 == "gitidm" && section != $2 {
+        section=$2
+        print $2
+    }
+    $1 == "gitidm" {
+        output="    "$3
+        for(i = 4; i <= NF; i++) {
+            output=output"."$i
+        }
+        print output
+    }
+    '
+}
+
+function run_command() {
+    case $4 in
+        user.name|user.email|core.sshCommand)
+            echo "$1 $2 $3 $4 \"$5\""
+            ;;
+        *)
+            echo "$*"
+            ;;
+    esac
+    "$@"
+}
+
+function identity_exists() {
+    git config --global --list | grep "^gitidm\\.${id}\\." &> /dev/null
+}
+
+function check_ssh_agent() {
+    if ! ssh-add -l | grep -F -- "$1" &> /dev/null; then
+        echo "WARNING: $1 has not been added to ssh-agent.  To fix run: ssh-add '$1'" >&2
+    fi
+}
+
+#################
+# OPTION HANDLING
+#################
+# command (required in all cases)
+comm="$1"
+shift
+# identity ID (optional in some cases)
+id="$1"
+shift
+NAME=""
+EMAIL=""
+SSH_KEY=""
+SSH_COMMAND=""
+if [ -z "${comm}" ]; then
+    echo "ERROR: command not specified.  See 'git idm help'."
+    exit 1
+fi
+if [ "${comm}" = "-h" -o "${id}" = "-h" ]; then
+    usage
+fi
+# parse additional arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --name)
+            NAME="$2"
+            shift 2
+            ;;
+        --email)
+            EMAIL="$2"
+            shift 2
+            ;;
+        --key)
+            if [ ! -r "$2" ]; then
+                echo "ERROR: Private key ${2} does not exist."
+            fi
+            SSH_KEY="$2"
+            SSH_COMMAND="ssh -i $2 -o IdentitiesOnly=yes -F /dev/null"
+            shift 2
+            ;;
+        -h)
+            usage
+            ;;
+        *)
+            echo "ERROR: option $1 not recognized.  See 'git idm help'." >&2
+            exit 1
+            ;;
+    esac
+done
+
+###################
+# RUN COMMAND LOGIC
+###################
+case "${comm}" in
+    active)
+        ACTIVE_ID="$(git config --global --get user.activeidm)"
+        NAME="$(git config --global --get gitidm."${ACTIVE_ID}".name)"
+        REAL_NAME="$(git config --global --get user.name)"
+        EMAIL="$(git config --global --get gitidm."${ACTIVE_ID}".email)"
+        REAL_EMAIL="$(git config --global --get user.email)"
+        SSH_COMMAND="$(git config --global --get gitidm."${ACTIVE_ID}".sshCommand)"
+        REAL_SSH_COMMAND="$(git config --global --get core.sshCommand)"
+        SSH_KEY="$(git config --global --get gitidm."${ACTIVE_ID}".sshKey)"
+        DISCREPENCY=false
+        if [ -n "${ACTIVE_ID}" ]; then
+            git config --global --list | grep "^gitidm.${ACTIVE_ID}" | print_identities
+            check_ssh_agent "${SSH_KEY}"
+            if [ ! "${NAME}" = "${REAL_NAME}" ]; then
+                echo "WARNING: user.name '${REAL_NAME}' does not match the one used by the identity." >&2
+                DISCREPENCY=true
+            fi
+            if [ ! "${EMAIL}" = "${REAL_EMAIL}" ]; then
+                echo "WARNING: user.email '${REAL_EMAIL}' does not match the one used by the identity." >&2
+                DISCREPENCY=true
+            fi
+            if [ ! "${SSH_COMMAND}" = "${REAL_SSH_COMMAND}" ]; then
+                echo "WARNING: core.sshCommand '${REAL_SSH_COMMAND}' does not match the one used by the identity." >&2
+                DISCREPENCY=true
+            fi
+            if [ "${DISCREPENCY}" = true ]; then
+                echo "ERROR: found above discrepencies with identity.  To fix run 'git idm use ${ACTIVE_ID}'." >&2
+                exit 1
+            fi
+        else
+            echo 'No identites are active.'
+        fi
+        ;;
+    add)
+        if [ "${id}" = all ]; then
+            echo 'ERROR: May not add an identity with the ID "all".  This is a reserved ID.' >&2
+            exit 1
+        fi
+        if ! identity_exists && [ -z "${NAME}" -o -z "${EMAIL}" -o -z "${SSH_KEY}" ]; then
+            echo 'ERROR: options --name, --email, and --key are required when adding an identity for the first time.' >&2
+            exit 1
+        fi
+        if [ -n "${NAME}" ]; then
+            git config --global gitidm."${id}".name "${NAME}"
+        fi
+        if [ -n "${EMAIL}" ]; then
+            git config --global gitidm."${id}".email "${EMAIL}"
+        fi
+        if [ -n "${SSH_KEY}" ]; then
+            git config --global gitidm."${id}".sshKey "${SSH_KEY}"
+            git config --global gitidm."${id}".sshCommand "${SSH_COMMAND}"
+            check_ssh_agent "${SSH_KEY}"
+        fi
+        ;;
+    clean)
+        "$0" remove all
+        #throw away the exit code because we don't care
+        run_command git config --global --unset user.activeidm || true
+        ;;
+    list)
+        git config --global --list | print_identities
+        ;;
+    remove)
+        if [ "${id}" = all ]; then
+            git config --global --list |
+            awk '
+            BEGIN {
+                FS="."
+            }
+            $1 == "gitidm" && section != $2 {
+                section=$2
+                print $2
+            }
+            ' |
+            while read x; do
+                "$0" remove "$x"
+            done
+        else
+            git config --global --remove-section gitidm."${id}"
+            echo "Removed identity ${id}."
+        fi
+        ;;
+    use)
+        if ! identity_exists; then
+            echo "ERROR: Identity ${id} does not exist.  See 'git idm list' or 'git idm help'." >&2
+            exit 1
+        fi
+        NAME="$(git config --global --get gitidm."${id}".name)"
+        EMAIL="$(git config --global --get gitidm."${id}".email)"
+        SSH_COMMAND="$(git config --global --get gitidm."${id}".sshCommand)"
+        if [ -n "${NAME}" ]; then
+            run_command git config --global user.name "${NAME}"
+        fi
+        if [ -n "${EMAIL}" ]; then
+            run_command git config --global user.email "${EMAIL}"
+        fi
+        if [ -n "${SSH_COMMAND}" ]; then
+            run_command git config --global core.sshCommand "${SSH_COMMAND}"
+        fi
+        run_command git config --global user.activeidm "${id}"
+        ;;
+    help)
+        usage
+        ;;
+    *)
+        echo "ERROR: Command ${comm} not found.  See 'git idm help'." >&2
+        exit 1
+        ;;
+esac
