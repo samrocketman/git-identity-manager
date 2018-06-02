@@ -35,6 +35,7 @@ Commands:
                 identities will be removed.  This will not affect settings not
                 related to git idm.
           use - Actively use an identity for git authorship and publishing.
+      version - Output version information.
 
 Command options:
 
