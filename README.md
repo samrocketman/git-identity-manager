@@ -34,7 +34,7 @@ List all known identities.
 
     git idm list
 
-For more commands see `git help idm`.
+For more commands see `git idm help`.
 
 # License
 
