@@ -29,8 +29,8 @@ Commands:
        active - Display the identity currently used by git idm.
           add - Add or update an identity.  --name, --email, and --key are
                 required when adding an identity for the first time only.
-         list - List identites.
-       remove - Remove a single identity or all identities.
+         list - List identites.  ls for short.
+       remove - Remove a single identity or all identities.  rm for short.
     uninstall - Removes all git idm data from global gitconfig.  All git idm
                 identities will be removed.  This will not affect settings not
                 related to git idm.
@@ -207,10 +207,10 @@ case "${comm}" in
     help)
         usage
         ;;
-    list)
+    list|ls)
         git config --global --list | print_identities
         ;;
-    remove)
+    remove|rm)
         if [ "${id}" = all ]; then
             git config --global --list |
             awk '
