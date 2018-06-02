@@ -1,4 +1,4 @@
-# Git Identity Manager
+# Git Identity Manager [![Build Status][build-img]][build-status]
 
 Ever find that managing multiple git identities is a pain?  This git transport
 attempts to make it less painful.
@@ -48,5 +48,7 @@ For more commands see `git idm help`.
 [MIT License](LICENSE.txt)
 
 [backpain]: https://user-images.githubusercontent.com/875669/40868569-f1512a4e-65c2-11e8-9dfe-91ece96d62db.jpg
+[build-img]: https://travis-ci.org/samrocketman/git-identity-manager.svg?branch=master
+[build-status]: https://travis-ci.org/samrocketman/git-identity-manager
 [git-2.10]: https://github.com/git/git/blob/v2.10.0/Documentation/RelNotes/2.10.0.txt#L83-L84
 [pbs]: https://www.pbs.org/newshour/health/back-pain-industry-taking-patients-unhealthy-ride
