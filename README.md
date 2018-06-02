@@ -18,6 +18,9 @@ access the script via `git idm`.  See `git idm help` for usage.
 
 # Uninstall
 
+Remove all data stored in `$HOME/.gitconfig` related to `git idm`.  This will
+not affect settings used by git.
+
     git idm uninstall
 
 # Quick start
