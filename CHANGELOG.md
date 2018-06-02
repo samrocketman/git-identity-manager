@@ -1,3 +1,9 @@
+# git-idm v0.4
+
+Bugfixes:
+
+- Active identity misprinting multiple IDs.
+
 # git-idm v0.3
 
 New features:
