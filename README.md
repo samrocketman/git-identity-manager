@@ -10,6 +10,12 @@ attempts to make it less painful.
 # Requirements
 
 - [`git 2.10` or later because of `core.sshCommand`][git-2.10].
+- GNU bash
+- awk (BSD or GNU awk recommended)
+- openssh client with ssh-agent
+
+bash, awk, and openssh are available by default on Mac OS X, BSD, and most
+flavors of GNU/Linux.
 
 # Installation
 
