@@ -170,7 +170,7 @@ case "${comm}" in
         SSH_KEY="$(git config --global --get gitidm."${ACTIVE_ID}".sshKey)"
         DISCREPENCY=false
         if [ -n "${ACTIVE_ID}" ]; then
-            git config --global --list | grep "^gitidm.${ACTIVE_ID}" | print_identities
+            git config --global --list | grep "^gitidm\\.${ACTIVE_ID}\\." | print_identities
             check_ssh_agent "${SSH_KEY}"
             if [ ! "${NAME}" = "${REAL_NAME}" ]; then
                 echo "WARNING: user.name '${REAL_NAME}' does not match the one used by the identity." >&2
