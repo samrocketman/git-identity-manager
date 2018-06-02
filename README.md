@@ -19,6 +19,7 @@ access the script via `git idm`.  See `git idm help` for usage.
 # Quick start
 
 Add your first identity.
+
     git idm add jcool --name "Joe Cool" --email joe@example.com --key ~/.ssh/id_rsa
 
 Activate your identity.
