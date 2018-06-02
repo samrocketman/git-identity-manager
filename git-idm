@@ -118,6 +118,10 @@ fi
 if [[ "${comm}" = "-h" || "${id}" = "-h" ]]; then
     usage
 fi
+if [[ "${comm}" = "-v" || "${id}" = "-v" || "${comm}" = "--version" || "${id}" = "--version" ]]; then
+    echo_version
+    exit
+fi
 # parse additional arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -139,6 +143,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h)
             usage
+            ;;
+        --version|-v)
+            echo_version
+            exit
             ;;
         *)
             echo "ERROR: option $1 not recognized.  See 'git idm help'." >&2
