@@ -3,7 +3,7 @@
 #License: MIT
 #Project URL: https://github.com/samrocketman/git-identity-manager
 
-version='0.1'
+version='0.2'
 
 function echo_version() {
     echo "git idm v${version}" >&2
