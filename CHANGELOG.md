@@ -1,3 +1,10 @@
+# git-idm v0.5
+
+New features:
+
+- Warn user about private key not being added to `ssh-agent` when using the `git
+  idm use` command.
+
 # git-idm v0.4
 
 Bugfixes:
