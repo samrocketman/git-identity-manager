@@ -1,3 +1,11 @@
+# git-idm v0.6
+
+New features:
+
+- Warn user when using a version of `git` older than 2.10.
+- New option `--ssh-command` which can be specified to use a completely custom
+  SSH command rather than relying on the default provided by `--key`.
+
 # git-idm v0.5
 
 New features:
