@@ -5,6 +5,10 @@
 
 version='0.6'
 
+if ! git --version | awk 'BEGIN { FS="." }; $2 < 10 { exit(1) }'; then
+    echo 'WARNING: "git --version" is older than Git 2.10.  git-idm will have unexpected behavior.' >&2
+fi
+
 function echo_version() {
     echo "git idm v${version}" >&2
 }
