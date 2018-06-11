@@ -49,7 +49,7 @@ Command options:
                       --name NAME - Name of the associated identity.
                     --email EMAIL - Email of the associated identity.
                     --key SSH_KEY - SSH private key of the associated identity.
-        --ssh-command SSH_COMMAND - Customize the SSH command ignoring --key
+        --ssh-command SSH_COMMAND - Customize the SSH command ignoring --key.
     list has no options.
     use:
         ID - Identity to activate.
