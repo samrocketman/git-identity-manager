@@ -75,6 +75,16 @@ work identity will automatically apply to the following directories:
     /home/user/git/work/
 ```
 
+Verify the identity has switched with `git config user.email`.
+
+    cd ~/git/work
+    mkdir example
+    cd example/
+    git init
+
+    # the email identity should show your work email
+    git config user.email
+
 # License
 
 [MIT License](LICENSE.txt)
