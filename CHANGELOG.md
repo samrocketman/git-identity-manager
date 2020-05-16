@@ -2,11 +2,14 @@
 
 Important Notes:
 
-- Minimum recommended git version is raised from 2.10 to 2.13.  This is to
-  support the new feature identity directory tracking.
+- When using `git idm track` to configure identity directory tracking,
+  configuration files are now created separately from your git config.  The
+  configuration files are named `~/.gitconfig_idm_<identity>`.
 - Due to the new feature identity directory tracking, identity names now must be
   a limited set of characters.  Only uppoercase, lowercase, underscore, and
   hyphen are valid characters in an identity name.
+- Minimum recommended git version is raised from 2.10 to 2.13.  This is to
+  support the new feature identity directory tracking.
 
 New features:
 
