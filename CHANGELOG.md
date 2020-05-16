@@ -1,3 +1,31 @@
+# git-idm v0.7
+
+Important Notes:
+
+- Minimum recommended git version is raised from 2.10 to 2.13.  This is to
+  support the new feature identity directory tracking.
+- Due to the new feature identity directory tracking, identity names now must be
+  a limited set of characters.  Only uppoercase, lowercase, underscore, and
+  hyphen are valid characters in an identity name.
+
+New features:
+
+- New option: `git idm track <identity> --directory <dir>`.  This will
+  automatically track directories for this identity.  If you clone a
+  project within the given path and make Git commits, then the identity will
+  automatically be used as the author.
+- New list behavior: `git idm list <identity> --tracked` will show the
+  directories which have been tracked for a given identity.
+- New remove behavior: If an identity is tracking directories, then removing the
+  identity will automatically clean up the settings for tracking directories and
+  authorship.
+- New uninstall behavior: `git idm uninstall` will remove identity tracking
+  along with the rest of `git idm` settings.
+
+See also [GitHub issue 1][#1] for more information.
+
+[#1]: https://github.com/samrocketman/git-identity-manager/issues/1
+
 # git-idm v0.6
 
 New features:

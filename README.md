@@ -9,13 +9,17 @@ attempts to make it less painful.
 
 # Requirements
 
-- [`git 2.10` or later because of `core.sshCommand`][git-2.10].
+- Git 2.13 or later.
+  - [`git 2.10` or later because of `core.sshCommand`][git-2.10].
+  - [`git 2.13` or later because of `includeIf.<condition>.path`][git-2.13].
 - GNU bash
 - awk (BSD or GNU awk recommended)
+- sed (BSD or GNU sed recommended)
 - openssh client with ssh-agent
 
-bash, awk, and openssh are available by default on Mac OS X, BSD, and most
-flavors of GNU/Linux.
+bash, awk, sed, and openssh are available by default on Mac OS X, BSD, and most
+flavors of GNU/Linux.  Git likely needs to be installed.  On Mac OS X,
+installing Git through homebrew is recommended.
 
 # Installation
 
@@ -49,6 +53,28 @@ List all known identities.
 
 For more commands see `git idm help`.
 
+# Autotracked identities
+
+You can configure your Git identities to automatically switch depending on what
+directory you have cloned.  For example, let's say you have personal projects
+and work projects on the same laptop.  Assuming you have a `work` identity and a
+`personal` identity configured, the following commands would help you
+auto-switch identites for repositories under designated paths.
+
+    git idm track work --directory ~/git/work
+    git idm track personal --directory ~/git/github
+
+You can list what directories are tracked by a given identity.
+
+    git idm list work --tracked
+
+Which will return output like the following.
+
+```
+work identity will automatically apply to the following directories:
+    /home/user/git/work/
+```
+
 # License
 
 [MIT License](LICENSE.txt)
@@ -57,4 +83,5 @@ For more commands see `git idm help`.
 [build-img]: https://travis-ci.org/samrocketman/git-identity-manager.svg?branch=master
 [build-status]: https://travis-ci.org/samrocketman/git-identity-manager
 [git-2.10]: https://github.com/git/git/blob/v2.10.0/Documentation/RelNotes/2.10.0.txt#L83-L84
+[git-2.13]: https://github.com/git/git/blob/v2.13.0/Documentation/RelNotes/2.13.0.txt#L127-L130
 [pbs]: https://www.pbs.org/newshour/health/back-pain-industry-taking-patients-unhealthy-ride

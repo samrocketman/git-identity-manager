@@ -3,17 +3,52 @@
 #License: MIT
 #Project URL: https://github.com/samrocketman/git-identity-manager
 
-version='0.6'
+version='0.7'
 
-if ! git --version | awk 'BEGIN { FS="." }; $2 < 10 { exit(1) }'; then
-    echo 'WARNING: "git --version" is older than Git 2.10.  git-idm will have unexpected behavior.' >&2
+if ! git --version | awk 'BEGIN { FS="." }; $2 < 13 { exit(1) }'; then
+    echo 'WARNING: "git --version" is older than Git 2.13.  git-idm will have unexpected behavior.' >&2
 fi
 
 function echo_version() {
     echo "git idm v${version}" >&2
 }
 
+function remove_tracked_identities() {
+    git config --global --list | 
+      grep -i "includeif\.gitdir:.*\.idm=${id}" |
+      sed "s/\\.idm=${id}\$//" |
+      sed 's/^includeif/includeIf/' |
+    while read section; do
+        run_command git config --global --remove-section "${section}"
+    done
+    if [ -f ~/".gitconfig_idm_${id}" ]; then
+        run_command rm -f ~/".gitconfig_idm_${id}"
+    fi
+}
+
+function check_identity_exists() {
+    if ! list_identities | grep "^${id}\$" > /dev/null; then
+        echo "ERROR: ${id} is not a valid identity." >&2
+        return 1
+    fi
+    return 0
+}
+
+function list_identities() {
+    git config --global --list |
+    awk '
+    BEGIN {
+        FS="."
+    }
+    $1 == "gitidm" && section != $2 {
+        section=$2
+        print $2
+    }
+    '
+}
+
 function usage() {
+    local cmd="${0##*/git-}"
     cat >&2 <<EOF
 Git identity manager (git idm).  It allows you to switch between git identities
 for user, name, and SSH private key used for authoring and publishing git
@@ -23,18 +58,34 @@ Synopsis: git ${0##*/git-} COMMAND [ID] [OPTIONS]
 
 Example usage:
 
-    git ${0##*/git-} add jcool --name "Joe Cool" --email "joe@example.com" --key ~/.ssh/id_rsa
-    git ${0##*/git-} list
-    git ${0##*/git-} use jcool
-    git ${0##*/git-} remove jcool
+    Basic commands for add, list, use, and remove.
+
+      git ${cmd} add jcool --name "Joe Cool" --email "joe@example.com" --key ~/.ssh/id_rsa
+      git ${cmd} list
+      git ${cmd} use jcool
+      git ${cmd} remove jcool
+
+    Auto-switching identities based on a tracked directory path of cloned
+    repositories.
+
+      git ${cmd} track jcool --directory ~/git/personal
+      git ${cmd} track work --directory ~/git/work
+
+    List directories automatically tracked.
+
+      git ${cmd} list jcool --tracked
 
 Commands:
 
        active - Display the identity currently used by git idm.
           add - Add or update an identity.  --name, --email, and --key are
                 required when adding an identity for the first time only.
-         list - List identites.  ls for short.
+         list - List identities.  ls for short.  Alternately list track
+                directories.
        remove - Remove a single identity or all identities.  rm for short.
+        track - Tracks a directory to automatically switch Git identities.
+                This is a convenience option which auto-switches identity based
+                on the path of your cloned project.
     uninstall - Removes all git idm data from global gitconfig.  All git idm
                 identities will be removed.  This will not affect settings not
                 related to git idm.
@@ -50,12 +101,20 @@ Command options:
                     --email EMAIL - Email of the associated identity.
                     --key SSH_KEY - SSH private key of the associated identity.
         --ssh-command SSH_COMMAND - Customize the SSH command ignoring --key.
-    list has no options.
+    list:
+        has no options.
     use:
         ID - Identity to activate.
     remove:
         ID - Remove the identity.  If ID is "all" then all identities will be
              removed.
+    track:
+                     ID - Identity which will track the directory.
+        --directory DIR - A directory path for auto-switching identities.  For
+                          this DIR path git will automatically switch to the
+                          specified ID for authorship.  This helps prevent
+                          accidentally using the wrong identity for
+                          contributions for projects cloned under the DIR path.
     uninstall has no options
 EOF
     echo_version
@@ -107,15 +166,17 @@ function check_ssh_agent() {
 # OPTION HANDLING
 #################
 # command (required in all cases)
-comm="$1"
+comm="${1:-}"
 shift
 # identity ID (optional in some cases)
-id="$1"
+id="${1:-}"
 shift
 NAME=""
 EMAIL=""
 SSH_KEY=""
 SSH_COMMAND=""
+DIRECTORY=""
+LIST_TRACKED=false
 if [ -z "${comm}" ]; then
     echo "ERROR: command not specified.  See 'git idm help'."
     exit 1
@@ -158,6 +219,18 @@ while [[ $# -gt 0 ]]; do
             fi
             SSH_COMMAND="$2"
             shift 2
+            ;;
+        --directory)
+            if [ ! -d "$2" ]; then
+                echo 'ERROR: --directory must have a valid directory following it.' >&2
+                exit 1
+            fi
+            DIRECTORY="${2%/}/"
+            shift 2
+            ;;
+        --tracked)
+            LIST_TRACKED=true
+            shift
             ;;
         -h)
             usage
@@ -215,6 +288,10 @@ case "${comm}" in
             echo 'ERROR: May not add an identity with the ID "all".  This is a reserved ID.' >&2
             exit 1
         fi
+        if echo "${id}" | grep -o '[^-_A-Za-z0-9]' > /dev/null; then
+            echo "ERROR: Identity name '${id}' contains invalid characters.  Identity names are limited to uppercase, lowercase, underscore, and hyphen characters." >&2
+            exit 1
+        fi
         if ! identity_exists && [[ -z "${NAME}" || -z "${EMAIL}" || ( -z "${SSH_KEY}" && -z "${SSH_COMMAND}" ) ]]; then
             echo 'ERROR: options --name, --email, and --key or --ssh-command are required when adding an identity for the first time.' >&2
             exit 1
@@ -237,7 +314,12 @@ case "${comm}" in
         usage
         ;;
     list|ls)
-        git config --global --list | print_identities
+        if [ "${LIST_TRACKED}" = true ]; then
+            echo "${id} identity will automatically apply to the following directories:"
+            git config --global --list | grep "includeif\.gitdir:.*\.idm=${id}" | sed "s/^includeif\\.gitdir:\\(.*\\)\\.idm=${id}\$/    \\1/"
+        else
+            git config --global --list | print_identities
+        fi
         ;;
     remove|rm)
         if [ -z "${id}" ]; then
@@ -245,30 +327,47 @@ case "${comm}" in
             exit 1
         fi
         if [ "${id}" = all ]; then
-            git config --global --list |
-            awk '
-            BEGIN {
-                FS="."
-            }
-            $1 == "gitidm" && section != $2 {
-                section=$2
-                print $2
-            }
-            ' |
+            list_identities |
             while read -r x; do
                 "$0" remove "$x"
             done
         else
-            git config --global --remove-section gitidm."${id}"
+            remove_tracked_identities
+            run_command git config --global --remove-section gitidm."${id}"
             echo "Removed identity ${id}."
         fi
+        ;;
+    track)
+        if ! check_identity_exists; then
+            echo 'ERROR: git idm track <identity> --directory <directory> must have a valid identity.  See "git idm ls".' >&2
+            exit 1
+        fi
+        if [ -z "${DIRECTORY:-}" ]; then
+            echo 'ERROR: git idm track <identity> --directory <directory> requires --directory option to be passed.  See "git idm help".' >&2
+            exit 1
+        fi
+        NAME="$(git config --global --get gitidm."${id}".name)"
+        EMAIL="$(git config --global --get gitidm."${id}".email)"
+        SSH_COMMAND="$(git config --global --get gitidm."${id}".sshCommand)"
+        if [ -n "${NAME}" ]; then
+            run_command git config --file ~/".gitconfig_idm_${id}" user.name "${NAME}"
+        fi
+        if [ -n "${EMAIL}" ]; then
+            run_command git config --file ~/".gitconfig_idm_${id}" user.email "${EMAIL}"
+        fi
+        if [ -n "${SSH_COMMAND}" ]; then
+            run_command git config --file ~/".gitconfig_idm_${id}" core.sshCommand "${SSH_COMMAND}"
+        fi
+        run_command git config --global includeIf."gitdir:${DIRECTORY}".idm "${id}"
+        run_command git config --global includeIf."gitdir:${DIRECTORY}".path ~/".gitconfig_idm_${id}"
         ;;
     uninstall)
         "$0" remove all
         #throw away the exit code because we don't care
         run_command git config --global --unset user.activeidm || true
+        echo >&2
         echo 'To complete uninstallation run the following command:' >&2
-        echo "rm \"$0\"" >&2
+        echo "    rm \"$0\"" >&2
         ;;
     use)
         if ! identity_exists; then
