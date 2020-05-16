@@ -102,7 +102,11 @@ Command options:
                     --key SSH_KEY - SSH private key of the associated identity.
         --ssh-command SSH_COMMAND - Customize the SSH command ignoring --key.
     list:
-        has no options.
+        Has no options.
+    list: (alternate usage)
+               ID - Identity which will be used to track.
+        --tracked - List directories tracked by an identity for autoswitching
+                    authorship.
     use:
         ID - Identity to activate.
     remove:
