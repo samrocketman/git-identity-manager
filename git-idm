@@ -161,7 +161,7 @@ function identity_exists() {
 }
 
 function check_ssh_agent() {
-    if ! ssh-add -l | grep -F -- "$1" &> /dev/null; then
+    if ! ssh-add -l | grep -F "$(ssh-keygen -lf $1)" -- &> /dev/null; then
         echo "WARNING: $1 has not been added to ssh-agent.  To fix run: ssh-add '$1'" >&2
     fi
 }
