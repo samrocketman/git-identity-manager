@@ -90,7 +90,7 @@ Verify the identity has switched with `git config user.email`.
 [MIT License](LICENSE.txt)
 
 [backpain]: https://user-images.githubusercontent.com/875669/40868569-f1512a4e-65c2-11e8-9dfe-91ece96d62db.jpg
-[build-img]: https://travis-ci.org/samrocketman/git-identity-manager.svg?branch=master
+[build-img]: https://travis-ci.org/samrocketman/git-identity-manager.svg?branch=main
 [build-status]: https://travis-ci.org/samrocketman/git-identity-manager
 [git-2.10]: https://github.com/git/git/blob/v2.10.0/Documentation/RelNotes/2.10.0.txt#L83-L84
 [git-2.13]: https://github.com/git/git/blob/v2.13.0/Documentation/RelNotes/2.13.0.txt#L127-L130
