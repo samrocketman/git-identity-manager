@@ -14,7 +14,7 @@ function echo_version() {
 }
 
 function remove_tracked_identities() {
-    git config --global --list | 
+    git config --global --list |
       grep -i "includeif\.gitdir:.*\.idm=${id}" |
       sed "s/\\.idm=${id}\$//" |
       sed 's/^includeif/includeIf/' |
@@ -100,6 +100,8 @@ Command options:
                       --name NAME - Name of the associated identity.
                     --email EMAIL - Email of the associated identity.
                     --key SSH_KEY - SSH private key of the associated identity.
+                    --signing-key SIGNING_KEY - (optional) add a gpg signing key.
+                    --sign-comits SIGN_COMMITS (optional) whether or not to sign commits.
         --ssh-command SSH_COMMAND - Customize the SSH command ignoring --key.
     list:
         Has no options.
@@ -232,6 +234,18 @@ while [[ $# -gt 0 ]]; do
             DIRECTORY="${2%/}/"
             shift 2
             ;;
+        --signing-key)
+            if [ ! -n "$2" ]; then
+                echo 'ERROR: --signing-key must have a valid key following it.' >&2
+                exit 1
+            fi
+            SIGNING_KEY="$2"
+            shift 2
+            ;;
+        --sign-commits)
+            SIGN_COMMITS=true
+            shift
+            ;;
         --tracked)
             LIST_TRACKED=true
             shift
@@ -263,6 +277,10 @@ case "${comm}" in
         SSH_COMMAND="$(git config --global --get gitidm."${ACTIVE_ID}".sshCommand)"
         REAL_SSH_COMMAND="$(git config --global --get core.sshCommand)"
         SSH_KEY="$(git config --global --get gitidm."${ACTIVE_ID}".sshKey)"
+        SIGNING_KEY="$(git config --global --get gitidm."${ACTIVE_ID}".signingKey)"
+        REAL_SIGNING_KEY="$(git config --global --get user.signingkey)"
+        SIGN_COMMITS="$(git config --global --get gitidm."${ACTIVE_ID}".signCommits)"
+        REAL_SIGN_COMMITS="$(git config --global --get commit.gpgsign)"
         DISCREPENCY=false
         if [ -n "${ACTIVE_ID}" ]; then
             git config --global --list | grep "^gitidm\\.${ACTIVE_ID}\\." | print_identities
@@ -277,6 +295,14 @@ case "${comm}" in
             fi
             if [ ! "${SSH_COMMAND}" = "${REAL_SSH_COMMAND}" ]; then
                 echo "WARNING: core.sshCommand '${REAL_SSH_COMMAND}' does not match the one used by the identity." >&2
+                DISCREPENCY=true
+            fi
+            if [ ! "${SIGNING_KEY}" = "${REAL_SIGNING_KEY}" ]; then
+                echo "WARNING: user.signingKey '${SIGNING_KEY}' does not match the one used by the identity." >&2
+                DISCREPENCY=true
+            fi
+            if [ ! "${SIGN_COMMITS}" = "${REAL_SIGN_COMMITS}" ]; then
+                echo "WARNING: commit.gpgsign '${SIGN_COMMITS}' does not match the one used by the identity." >&2
                 DISCREPENCY=true
             fi
             if [ "${DISCREPENCY}" = true ]; then
@@ -312,6 +338,12 @@ case "${comm}" in
         fi
         if [ -n "${SSH_COMMAND}" ]; then
             git config --global gitidm."${id}".sshCommand "${SSH_COMMAND}"
+        fi
+        if [ -n "${SIGNING_KEY}" ]; then
+            git config --global gitidm."${id}".signingKey "${SIGNING_KEY}"
+        fi
+        if [ -n "${SIGN_COMMITS}" ]; then
+            git config --global gitidm."${id}".signCommits "${SIGN_COMMITS}"
         fi
         ;;
     help)
@@ -353,6 +385,8 @@ case "${comm}" in
         NAME="$(git config --global --get gitidm."${id}".name)"
         EMAIL="$(git config --global --get gitidm."${id}".email)"
         SSH_COMMAND="$(git config --global --get gitidm."${id}".sshCommand)"
+        SIGNING_KEY="$(git config --global --get gitidm."${id}".signingKey)"
+        SIGN_COMMITS="$(git config --global --get gitidm."${id}".signCommits)"
         if [ -n "${NAME}" ]; then
             run_command git config --file ~/".gitconfig_idm_${id}" user.name "${NAME}"
         fi
@@ -361,6 +395,12 @@ case "${comm}" in
         fi
         if [ -n "${SSH_COMMAND}" ]; then
             run_command git config --file ~/".gitconfig_idm_${id}" core.sshCommand "${SSH_COMMAND}"
+        fi
+        if [ -n "${SIGNING_KEY}" ]; then
+            run_command git config --file ~/".gitconfig_idm_${id}" user.signingkey "${SIGNING_KEY}"
+        fi
+        if [ -n "${SIGN_COMMITS}" ]; then
+            run_command git config --file ~/".gitconfig_idm_${id}" commit.gpgsign "${SIGN_COMMITS}"
         fi
         run_command git config --global includeIf."gitdir:${DIRECTORY}".idm "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".path ~/".gitconfig_idm_${id}"
@@ -382,6 +422,8 @@ case "${comm}" in
         EMAIL="$(git config --global --get gitidm."${id}".email)"
         SSH_COMMAND="$(git config --global --get gitidm."${id}".sshCommand)"
         SSH_KEY="$(git config --global --get gitidm."${id}".sshKey)"
+        SIGNING_KEY="$(git config --global --get gitidm."${id}".signingKey)"
+        SIGN_COMMITS="$(git config --global --get gitidm."${id}".signCommits)"
         if [ -n "${NAME}" ]; then
             run_command git config --global user.name "${NAME}"
         fi
@@ -390,6 +432,18 @@ case "${comm}" in
         fi
         if [ -n "${SSH_COMMAND}" ]; then
             run_command git config --global core.sshCommand "${SSH_COMMAND}"
+        fi
+        if [ -n "${SIGNING_KEY}" ];
+          then
+            run_command git config --global user.signingkey "${SIGNING_KEY}"
+          else
+            run_command git config --global --unset user.signingkey
+        fi
+        if [ -n "${SIGN_COMMITS}" ];
+            then
+              run_command git config --global commit.gpgsign "${SIGN_COMMITS}"
+            else
+              run_command git config --global --unset commit.gpgsign
         fi
         run_command git config --global user.activeidm "${id}"
         if [ -n "${SSH_KEY}" ]; then
