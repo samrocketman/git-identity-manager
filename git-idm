@@ -235,7 +235,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --signing-key)
-            if [ ! -n "$2" ]; then
+            if [ -z "$2" ]; then
                 echo 'ERROR: --signing-key must have a valid key following it.' >&2
                 exit 1
             fi
