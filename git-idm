@@ -3,7 +3,7 @@
 #License: MIT
 #Project URL: https://github.com/samrocketman/git-identity-manager
 
-version='0.8'
+version='0.9'
 
 if ! git --version | awk 'BEGIN { FS="." }; $2 < 13 { exit(1) }'; then
     echo 'WARNING: "git --version" is older than Git 2.13.  git-idm will have unexpected behavior.' >&2
@@ -47,6 +47,21 @@ function list_identities() {
     '
 }
 
+# TODO: remove migration 5 or 6 releases after v0.9.
+function migrate_active_identities() {
+    local stored_id=""
+    local migrate=false
+    for x in $(list_identities); do
+      if [ -f ~/".gitconfig_idm_${x}" ]; then
+        stored_id="$(git config --file ~/".gitconfig_idm_${x}" --get user.activeidm)"
+        if [ -n "${stored_id}" ]; then
+          break
+        fi
+        git config --file ~/".gitconfig_idm_${x}" user.activeidm "${x}"
+      fi
+    done
+}
+
 function usage() {
     local cmd="${0##*/git-}"
     cat >&2 <<EOF
@@ -64,10 +79,10 @@ Example usage:
       git ${cmd} list
       git ${cmd} use jcool
       git ${cmd} remove jcool
-	  
-	Adding with a GPG key and signing each commit
-	
-	  git ${cmd} add jcool --name "Joe Cool" --email "joe@example.com" --key ~/.ssh/id_rsa --signing-key 1AA11AAA111A1AAA --sign-commits
+
+    Adding with a GPG key and signing each commit
+
+      git ${cmd} add jcool --name "Joe Cool" --email "joe@example.com" --key ~/.ssh/id_rsa --signing-key 1AA11AAA111A1AAA --sign-commits
 
     Auto-switching identities based on a tracked directory path of cloned
     repositories.
@@ -273,20 +288,30 @@ done
 ###################
 case "${comm}" in
     active)
-        ACTIVE_ID="$(git config --global --get user.activeidm)"
+        # TODO: remove migration 5 or 6 releases after v0.9.
+        migrate_active_identities
+        ACTIVE_ID="$(git config --get user.activeidm)"
+        GLOBAL_ACTIVE_ID="$(git config --global --get user.activeidm)"
         NAME="$(git config --global --get gitidm."${ACTIVE_ID}".name)"
-        REAL_NAME="$(git config --global --get user.name)"
+        REAL_NAME="$(git config --get user.name)"
         EMAIL="$(git config --global --get gitidm."${ACTIVE_ID}".email)"
-        REAL_EMAIL="$(git config --global --get user.email)"
+        REAL_EMAIL="$(git config --get user.email)"
         SSH_COMMAND="$(git config --global --get gitidm."${ACTIVE_ID}".sshCommand)"
-        REAL_SSH_COMMAND="$(git config --global --get core.sshCommand)"
+        REAL_SSH_COMMAND="$(git config --get core.sshCommand)"
         SSH_KEY="$(git config --global --get gitidm."${ACTIVE_ID}".sshKey)"
         SIGNING_KEY="$(git config --global --get gitidm."${ACTIVE_ID}".signingKey)"
-        REAL_SIGNING_KEY="$(git config --global --get user.signingkey)"
+        REAL_SIGNING_KEY="$(git config --get user.signingkey)"
         SIGN_COMMITS="$(git config --global --get gitidm."${ACTIVE_ID}".signCommits)"
-        REAL_SIGN_COMMITS="$(git config --global --get commit.gpgsign)"
+        REAL_SIGN_COMMITS="$(git config --get commit.gpgsign)"
         DISCREPENCY=false
         if [ -n "${ACTIVE_ID}" ]; then
+            if [ ! "${ACTIVE_ID}" = "${GLOBAL_ACTIVE_ID}" ]; then
+                cat >&2 <<EOF
+NOTE: identity '${ACTIVE_ID}' has overridden '${GLOBAL_ACTIVE_ID}'.  See also
+    'git idm list ${ACTIVE_ID} --tracked' for full list of tracked directories
+    for this identity.
+EOF
+            fi
             git config --global --list | grep "^gitidm\\.${ACTIVE_ID}\\." | print_identities
             check_ssh_agent "${SSH_KEY}"
             if [ ! "${NAME}" = "${REAL_NAME}" ]; then
@@ -406,6 +431,7 @@ case "${comm}" in
         if [ -n "${SIGN_COMMITS}" ]; then
             run_command git config --file ~/".gitconfig_idm_${id}" commit.gpgsign "${SIGN_COMMITS}"
         fi
+        run_command git config --file ~/".gitconfig_idm_${id}" user.activeidm "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".idm "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".path ~/".gitconfig_idm_${id}"
         ;;

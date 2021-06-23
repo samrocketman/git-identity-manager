@@ -1,3 +1,16 @@
+# git-idm v0.9
+
+Importante Notes:
+
+- The bugfix for active identity includes a backwards compatible config
+  migration.  This config migration code will be removed after 5 or 6 releases
+  from now since it will likely no longer be required.
+
+Bug fixes:
+
+- Show proper active identity within a tracked directory.  Before, it would only
+  show the global identity and didn't properly sanity check the identity.
+
 # git-idm v0.8
 
 New features:
