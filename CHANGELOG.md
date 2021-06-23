@@ -1,3 +1,13 @@
+# git-idm v0.8
+
+New features:
+
+- GPG commit signing now supported per identity.  See pull request [#4][#4] and
+  [#5][#5].
+
+[#4]: https://github.com/samrocketman/git-identity-manager/pull/4
+[#5]: https://github.com/samrocketman/git-identity-manager/pull/5
+
 # git-idm v0.7
 
 Important Notes:
