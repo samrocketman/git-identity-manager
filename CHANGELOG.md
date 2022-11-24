@@ -8,7 +8,11 @@ Important Notes:
 
 Bug fixes:
 
-- Bugfix tracked directories is broken for git version 2.38.1.
+- Bugfix tracked directories is broken for git version 2.38.1.  Looking at git
+  source code this was likely broken [from git version 2.29.0][git-2.29-bug]
+  and onward.
+
+[git-2.29-bug]: https://github.com/git/git/commit/9a53219f69bd470053cf93c3f4d2a77b6d4df3e5
 
 # git-idm v0.9
 
