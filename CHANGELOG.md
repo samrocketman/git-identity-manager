@@ -1,6 +1,18 @@
+# git-idm v0.10
+
+Important Notes:
+
+- Global settings will automatically be removed.
+- If using an older version of Git such as git version 2.25.1 on Ubuntu 20.04
+  then there's no need to upgrade.
+
+Bug fixes:
+
+- Bugfix tracked directories is broken for git version 2.38.1.
+
 # git-idm v0.9
 
-Importante Notes:
+Important Notes:
 
 - The bugfix for active identity includes a backwards compatible config
   migration.  This config migration code will be removed after 5 or 6 releases
@@ -10,6 +22,11 @@ Bug fixes:
 
 - Show proper active identity within a tracked directory.  Before, it would only
   show the global identity and didn't properly sanity check the identity.
+
+New features:
+
+- New command `git idm copy-key-to` which copies SSH keys from other identities
+  into the specified identity.  This command is more for migration purposes.
 
 # git-idm v0.8
 

@@ -3,7 +3,7 @@
 #License: MIT
 #Project URL: https://github.com/samrocketman/git-identity-manager
 
-version='0.9'
+version='0.10'
 
 if ! git --version | awk 'BEGIN { FS="." }; $2 < 13 { exit(1) }'; then
     echo 'WARNING: "git --version" is older than Git 2.13.  git-idm will have unexpected behavior.' >&2
@@ -15,9 +15,9 @@ function echo_version() {
 
 function remove_tracked_identities() {
     git config --global --list |
-      grep -i "includeif\.gitdir:.*\.idm=${id}" |
-      sed "s/\\.idm=${id}\$//" |
-      sed 's/^includeif/includeIf/' |
+        grep -i "includeif\.gitdir:.*\.idm=${id}" |
+        sed "s/\\.idm=${id}\$//" |
+        sed 's/^includeif/includeIf/' |
     while read -r section; do
         run_command git config --global --remove-section "${section}"
     done
@@ -47,7 +47,7 @@ function list_identities() {
     '
 }
 
-# TODO: remove migration 5 or 6 releases after v0.9.
+# TODO: remove migration 5 releases after v0.9.
 function migrate_active_identities() {
     local stored_id=""
     local migrate=false
@@ -60,6 +60,56 @@ function migrate_active_identities() {
         git config --file ~/".gitconfig_idm_${x}" user.activeidm "${x}"
       fi
     done
+}
+
+# TODO: remove migration 5 releases after v0.10.
+function migrate_global_config() {
+    if git config -f ~/.gitconfig --get core.sshCommand > /dev/null; then
+        run_command git config -f ~/.gitconfig --unset core.sshCommand
+    fi
+    if git config -f ~/.gitconfig --get user.signingkey > /dev/null; then
+      run_command git config -f ~/.gitconfig --unset user.signingkey
+    fi
+    if git config -f ~/.gitconfig --get commit.gpgsign; then
+      run_command git config -f ~/.gitconfig --unset commit.gpgsign
+    fi
+}
+
+function no_ssh_key_warning() {
+    local SSH_COMMAND="$(git config --global --get gitidm."${1}".sshCommand)"
+    if [ -z "${SSH_COMMAND:-}" ]; then
+        echo >&2
+        echo "WARNING: ${1} identity has no SSH key." >&2
+        echo '    Copy an SSH key from another identity with copy-key-to command.' >&2
+        echo '    See "git idm help" for usage.' >&2
+    fi
+}
+
+function add_identity_file() {
+    if [ -f ~/".gitconfig_idm_${1}" ]; then
+        return
+    fi
+    local NAME="$(git config --global --get gitidm."${1}".name)"
+    local EMAIL="$(git config --global --get gitidm."${1}".email)"
+    local SSH_COMMAND="$(git config --global --get gitidm."${1}".sshCommand)"
+    local SIGNING_KEY="$(git config --global --get gitidm."${1}".signingKey)"
+    local SIGN_COMMITS="$(git config --global --get gitidm."${1}".signCommits)"
+    if [ -n "${NAME}" ]; then
+        run_command git config --file ~/".gitconfig_idm_${1}" user.name "${NAME}"
+    fi
+    if [ -n "${EMAIL}" ]; then
+        run_command git config --file ~/".gitconfig_idm_${1}" user.email "${EMAIL}"
+    fi
+    if [ -n "${SSH_COMMAND}" ]; then
+        run_command git config --file ~/".gitconfig_idm_${1}" core.sshCommand "${SSH_COMMAND}"
+    fi
+    if [ -n "${SIGNING_KEY}" ]; then
+        run_command git config --file ~/".gitconfig_idm_${1}" user.signingkey "${SIGNING_KEY}"
+    fi
+    if [ -n "${SIGN_COMMITS}" ]; then
+        run_command git config --file ~/".gitconfig_idm_${1}" commit.gpgsign "${SIGN_COMMITS}"
+    fi
+    run_command git config --file ~/".gitconfig_idm_${1}" user.activeidm "${1}"
 }
 
 function usage() {
@@ -94,11 +144,16 @@ Example usage:
 
       git ${cmd} list jcool --tracked
 
+    Copy SSH key from another identity.
+
+      git ${cmd} copy-key-to jcool --from-id work
+
 Commands:
 
        active - Display the identity currently used by git idm.
           add - Add or update an identity.  --name, --email, and --key are
                 required when adding an identity for the first time only.
+  copy-key-to - Copy an SSH key from another identity.
          list - List identities.  ls for short.  Alternately list track
                 directories.
        remove - Remove a single identity or all identities.  rm for short.
@@ -122,6 +177,9 @@ Command options:
                     --signing-key SIGNING_KEY - (optional) add a gpg signing key.
                     --sign-commits SIGN_COMMITS (optional) whether or not to sign commits.
         --ssh-command SSH_COMMAND - Customize the SSH command ignoring --key.
+    copy-key-to:
+                  ID - Identity to copy an SSH key to.
+        --from-id ID - The source identity to copy the SSH key from.
     list:
         Has no options.
     list: (alternate usage)
@@ -166,15 +224,17 @@ function print_identities() {
 }
 
 function run_command() {
+    local args=( "$@" )
     case $4 in
         user.name|user.email|core.sshCommand)
-            echo "$1 $2 $3 $4 \"$5\""
+            msg=( "$1" "$2" "$3" "$4" \""$5"\" )
+            echo "${msg[@]} $*"
             ;;
         *)
             echo "$*"
             ;;
     esac
-    "$@"
+    "${args[@]}"
 }
 
 function identity_exists() {
@@ -201,6 +261,7 @@ EMAIL=""
 SSH_KEY=""
 SSH_COMMAND=""
 DIRECTORY=""
+FROM_ID=""
 LIST_TRACKED=false
 if [ -z "${comm}" ]; then
     echo "ERROR: command not specified.  See 'git idm help'."
@@ -268,6 +329,10 @@ while [[ $# -gt 0 ]]; do
         --tracked)
             LIST_TRACKED=true
             shift
+            ;;
+        --from-id)
+            FROM_ID="$2"
+            shift 2
             ;;
         -h)
             usage
@@ -338,6 +403,7 @@ EOF
                 echo "ERROR: found above discrepencies with identity.  To fix run 'git idm use ${ACTIVE_ID}'." >&2
                 exit 1
             fi
+            no_ssh_key_warning "${ACTIVE_ID}"
         else
             echo 'No identites are active.'
         fi
@@ -356,24 +422,37 @@ EOF
             exit 1
         fi
         if [ -n "${NAME}" ]; then
-            git config --global gitidm."${id}".name "${NAME}"
+            run_command git config --global gitidm."${id}".name "${NAME}"
         fi
         if [ -n "${EMAIL}" ]; then
-            git config --global gitidm."${id}".email "${EMAIL}"
+            run_command git config --global gitidm."${id}".email "${EMAIL}"
         fi
         if [ -n "${SSH_KEY}" ]; then
-            git config --global gitidm."${id}".sshKey "${SSH_KEY}"
+            run_command git config --global gitidm."${id}".sshKey "${SSH_KEY}"
             check_ssh_agent "${SSH_KEY}"
         fi
         if [ -n "${SSH_COMMAND}" ]; then
-            git config --global gitidm."${id}".sshCommand "${SSH_COMMAND}"
+            run_command git config --global gitidm."${id}".sshCommand "${SSH_COMMAND}"
         fi
         if [ -n "${SIGNING_KEY}" ]; then
-            git config --global gitidm."${id}".signingKey "${SIGNING_KEY}"
+            run_command git config --global gitidm."${id}".signingKey "${SIGNING_KEY}"
         fi
         if [ -n "${SIGN_COMMITS}" ]; then
-            git config --global gitidm."${id}".signCommits "${SIGN_COMMITS}"
+            run_command git config --global gitidm."${id}".signCommits "${SIGN_COMMITS}"
         fi
+        add_identity_file "${id}"
+        no_ssh_key_warning "${id}"
+        ;;
+    copy-key-to)
+        SSH_KEY="$(git config --global --get gitidm."${FROM_ID}".sshKey)"
+        SSH_COMMAND="$(git config --global --get gitidm."${FROM_ID}".sshCommand)"
+        if [ -z "${SSH_KEY:-}" ] || [ -z "${SSH_COMMAND:-}" ]; then
+            echo "ERROR: ${FROM_ID} identity has no SSH key." >&2
+            echo '    See "git idm ls" or "git idm help".' >&2
+            exit 1
+        fi
+        run_command git config --global gitidm."${id}".sshKey "${SSH_KEY}"
+        check_ssh_agent "${SSH_KEY}"
         ;;
     help)
         usage
@@ -411,29 +490,10 @@ EOF
             echo 'ERROR: git idm track <identity> --directory <directory> requires --directory option to be passed.  See "git idm help".' >&2
             exit 1
         fi
-        NAME="$(git config --global --get gitidm."${id}".name)"
-        EMAIL="$(git config --global --get gitidm."${id}".email)"
-        SSH_COMMAND="$(git config --global --get gitidm."${id}".sshCommand)"
-        SIGNING_KEY="$(git config --global --get gitidm."${id}".signingKey)"
-        SIGN_COMMITS="$(git config --global --get gitidm."${id}".signCommits)"
-        if [ -n "${NAME}" ]; then
-            run_command git config --file ~/".gitconfig_idm_${id}" user.name "${NAME}"
-        fi
-        if [ -n "${EMAIL}" ]; then
-            run_command git config --file ~/".gitconfig_idm_${id}" user.email "${EMAIL}"
-        fi
-        if [ -n "${SSH_COMMAND}" ]; then
-            run_command git config --file ~/".gitconfig_idm_${id}" core.sshCommand "${SSH_COMMAND}"
-        fi
-        if [ -n "${SIGNING_KEY}" ]; then
-            run_command git config --file ~/".gitconfig_idm_${id}" user.signingkey "${SIGNING_KEY}"
-        fi
-        if [ -n "${SIGN_COMMITS}" ]; then
-            run_command git config --file ~/".gitconfig_idm_${id}" commit.gpgsign "${SIGN_COMMITS}"
-        fi
-        run_command git config --file ~/".gitconfig_idm_${id}" user.activeidm "${id}"
+        add_identity_file "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".idm "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".path ~/".gitconfig_idm_${id}"
+        no_ssh_key_warning "${id}"
         ;;
     uninstall)
         "$0" remove all
@@ -450,35 +510,24 @@ EOF
         fi
         NAME="$(git config --global --get gitidm."${id}".name)"
         EMAIL="$(git config --global --get gitidm."${id}".email)"
-        SSH_COMMAND="$(git config --global --get gitidm."${id}".sshCommand)"
-        SSH_KEY="$(git config --global --get gitidm."${id}".sshKey)"
-        SIGNING_KEY="$(git config --global --get gitidm."${id}".signingKey)"
-        SIGN_COMMITS="$(git config --global --get gitidm."${id}".signCommits)"
         if [ -n "${NAME}" ]; then
             run_command git config --global user.name "${NAME}"
         fi
         if [ -n "${EMAIL}" ]; then
             run_command git config --global user.email "${EMAIL}"
         fi
-        if [ -n "${SSH_COMMAND}" ]; then
-            run_command git config --global core.sshCommand "${SSH_COMMAND}"
+        if ! git config --global --get include.path '_idm_' > /dev/null; then
+          run_command git config --global --add include.path ~/".gitconfig_idm_${id}"
+        else
+          run_command git config --global --replace-all include.path ~/".gitconfig_idm_${id}" '_idm_'
         fi
-        if [ -n "${SIGNING_KEY}" ];
-          then
-            run_command git config --global user.signingkey "${SIGNING_KEY}"
-          else
-            run_command git config --global --unset user.signingkey
-        fi
-        if [ -n "${SIGN_COMMITS}" ];
-            then
-              run_command git config --global commit.gpgsign "${SIGN_COMMITS}"
-            else
-              run_command git config --global --unset commit.gpgsign
-        fi
+        migrate_global_config
         run_command git config --global user.activeidm "${id}"
         if [ -n "${SSH_KEY}" ]; then
-            check_ssh_agent "${SSH_KEY}"
+          check_ssh_agent "${SSH_KEY}"
         fi
+        add_identity_file "${id}"
+        no_ssh_key_warning "${id}"
         ;;
     version)
         echo_version
