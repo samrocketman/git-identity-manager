@@ -1,4 +1,4 @@
-# Git Identity Manager [![Build Status][build-img]][build-status]
+# Git Identity Manager
 
 Ever find that managing multiple git identities is a pain?  This git transport
 attempts to make it less painful.
