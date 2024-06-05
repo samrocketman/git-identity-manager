@@ -1,3 +1,11 @@
+# git-idm v0.11
+
+- Bug fix: since initial setup assumes a certain order of `.gitconfig` sections,
+  then attempt to assure initial setup every time a write operation would occur
+  to `.gitconfig`.  See issue [#6][#6].
+
+[#6]: https://github.com/samrocketman/git-identity-manager/issues/6
+
 # git-idm v0.10
 
 Important Notes:

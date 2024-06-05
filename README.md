@@ -9,9 +9,10 @@ attempts to make it less painful.
 
 # Requirements
 
-- Git 2.13 or later.
+- Git 2.18 or later.
   - [`git 2.10` or later because of `core.sshCommand`][git-2.10].
   - [`git 2.13` or later because of `includeIf.<condition>.path`][git-2.13].
+  - [`git 2.18` or later because of git-config bug][git-2.18].
 - GNU bash
 - awk (BSD or GNU awk recommended)
 - sed (BSD or GNU sed recommended)
@@ -94,4 +95,5 @@ Verify the identity has switched with `git config user.email`.
 [build-status]: https://travis-ci.org/samrocketman/git-identity-manager
 [git-2.10]: https://github.com/git/git/blob/v2.10.0/Documentation/RelNotes/2.10.0.txt#L83-L84
 [git-2.13]: https://github.com/git/git/blob/v2.13.0/Documentation/RelNotes/2.13.0.txt#L127-L130
+[git-2.18]: https://github.com/git/git/blob/53f9a3e157dbbc901a02ac2c73346d375e24978c/Documentation/RelNotes/2.18.0.txt#L379-L384
 [pbs]: https://www.pbs.org/newshour/health/back-pain-industry-taking-patients-unhealthy-ride

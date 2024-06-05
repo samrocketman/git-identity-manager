@@ -3,11 +3,23 @@
 #License: MIT
 #Project URL: https://github.com/samrocketman/git-identity-manager
 
-version='0.10'
+version='0.11'
 
-if ! git --version | awk 'BEGIN { FS="." }; $2 < 13 { exit(1) }'; then
-    echo 'WARNING: "git --version" is older than Git 2.13.  git-idm will have unexpected behavior.' >&2
+if ! git --version | awk 'BEGIN { FS="." }; $2 < 18 { exit(1) }'; then
+    echo 'WARNING: "git --version" is older than Git 2.18.  git-idm will have unexpected behavior.' >&2
 fi
+
+function initial_setup() {
+  if [ ! -f ~/.gitconfig ]; then
+    touch ~/.gitconfig
+  fi
+  if ! { git config --global -l | grep '^user\.' || grep -F '[user]' ~/.gitconfig; } > /dev/null; then
+    echo '[user]' >> ~/.gitconfig
+  fi
+  if ! { git config --global -l | grep '^include\.' || grep -F '[include]' ~/.gitconfig; } > /dev/null; then
+    echo '[include]' >> ~/.gitconfig
+  fi
+}
 
 function echo_version() {
     echo "git idm v${version}" >&2
@@ -421,6 +433,7 @@ EOF
             echo 'ERROR: options --name, --email, and --key or --ssh-command are required when adding an identity for the first time.' >&2
             exit 1
         fi
+        initial_setup
         if [ -n "${NAME}" ]; then
             run_command git config --global gitidm."${id}".name "${NAME}"
         fi
@@ -444,6 +457,7 @@ EOF
         no_ssh_key_warning "${id}"
         ;;
     copy-key-to)
+        initial_setup
         SSH_KEY="$(git config --global --get gitidm."${FROM_ID}".sshKey)"
         SSH_COMMAND="$(git config --global --get gitidm."${FROM_ID}".sshCommand)"
         if [ -z "${SSH_KEY:-}" ] || [ -z "${SSH_COMMAND:-}" ]; then
@@ -490,6 +504,7 @@ EOF
             echo 'ERROR: git idm track <identity> --directory <directory> requires --directory option to be passed.  See "git idm help".' >&2
             exit 1
         fi
+        initial_setup
         add_identity_file "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".idm "${id}"
         run_command git config --global includeIf."gitdir:${DIRECTORY}".path ~/".gitconfig_idm_${id}"
@@ -508,6 +523,7 @@ EOF
             echo "ERROR: Identity ${id} does not exist.  See 'git idm list' or 'git idm help'." >&2
             exit 1
         fi
+        initial_setup
         NAME="$(git config --global --get gitidm."${id}".name)"
         EMAIL="$(git config --global --get gitidm."${id}".email)"
         if [ -n "${NAME}" ]; then
