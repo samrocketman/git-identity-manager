@@ -27,12 +27,24 @@ installing Git through homebrew is recommended.
 Add `git-idm` script to your `$PATH` and make it executable.  Then, you can
 access the script via `git idm`.  See `git idm help` for usage.
 
+### via Homebrew on macOS / Linux / WSL2
+
+A Homebrew tap is available [here](https://github.com/fleetwoodmac/homebrew-git-identity-manager).
+
+Install using `brew install fleetwoodmac/git-identity-manager/git-identity-manager`
+
 # Uninstall
 
 Remove all data stored in `$HOME/.gitconfig` related to `git idm`.  This will
 not affect settings used by git.
 
     git idm uninstall
+
+### via Homebrew 
+- If installed via Homebrew, uninstall by first running `git idm uninstall` as above.
+- Then, run `brew uninstall git-identity-manager`
+- Finally, run `brew untap fleetwoodmac/git-identity-manager`
+
 
 # Quick start
 
