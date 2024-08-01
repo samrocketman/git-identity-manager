@@ -33,7 +33,7 @@ A Homebrew tap is available [here](https://github.com/fleetwoodmac/homebrew-git-
 
 Install with the following command.
 
-    brew install fleetwoodmac/git-identity-manager/git-identity-manager`
+    brew install fleetwoodmac/git-identity-manager/git-identity-manager
 
 # Uninstall
 
