@@ -31,7 +31,9 @@ access the script via `git idm`.  See `git idm help` for usage.
 
 A Homebrew tap is available [here](https://github.com/fleetwoodmac/homebrew-git-identity-manager).
 
-Install using `brew install fleetwoodmac/git-identity-manager/git-identity-manager`
+Install with the following command.
+
+    brew install fleetwoodmac/git-identity-manager/git-identity-manager`
 
 # Uninstall
 
